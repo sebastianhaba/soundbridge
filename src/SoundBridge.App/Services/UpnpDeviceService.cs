@@ -2,16 +2,23 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OpenHome.Net.Core;
 using OpenHome.Net.Device;
+using OpenHome.Net.Device.Providers;
+using OhNetLibrary = OpenHome.Net.Core.Library;
 
 namespace SoundBridge.App.Services;
 
 public class UpnpDeviceService : BackgroundService
 {
-    private readonly Library _library;
+    private readonly OhNetLibrary _library;
     private readonly DvDevice _device;
     private readonly ILogger<UpnpDeviceService> _logger;
 
-    public UpnpDeviceService(Library library, DvDevice device, ILogger<UpnpDeviceService> logger)
+    public UpnpDeviceService(
+        OhNetLibrary library,
+        DvDevice device,
+        ILogger<UpnpDeviceService> logger,
+        DvProviderUpnpOrgContentDirectory1 _,
+        DvProviderUpnpOrgConnectionManager1 __)
     {
         _library = library;
         _device = device;

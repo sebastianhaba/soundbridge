@@ -1,18 +1,29 @@
+using Microsoft.Extensions.Logging;
 using OpenHome.Net.Device;
 using OpenHome.Net.Device.Providers;
 using SoundBridge.App.Core;
+using SoundBridge.App.Library;
 
 namespace SoundBridge.App.Providers;
 
 public class SoundBridgeContentDirectory : DvProviderUpnpOrgContentDirectory1
 {
-    public SoundBridgeContentDirectory(DvDevice device) : base(device)
+    private readonly IContentResolver _resolver;
+    private readonly ILogger<SoundBridgeContentDirectory> _logger;
+
+    public SoundBridgeContentDirectory(
+        DvDevice device,
+        IContentResolver resolver,
+        ILogger<SoundBridgeContentDirectory> logger) : base(device)
     {
+        _resolver = resolver;
+        _logger = logger;
+
         EnablePropertySystemUpdateID();
         EnablePropertyContainerUpdateIDs();
         EnablePropertyTransferIDs();
 
-        SetPropertySystemUpdateID(0);
+        SetPropertySystemUpdateID((uint)DateTimeOffset.UtcNow.ToUnixTimeSeconds());
         SetPropertyContainerUpdateIDs("");
         SetPropertyTransferIDs("");
 
@@ -35,7 +46,7 @@ public class SoundBridgeContentDirectory : DvProviderUpnpOrgContentDirectory1
 
     protected override void GetSystemUpdateID(IDvInvocation aInvocation, out uint aId)
     {
-        aId = 0;
+        aId = (uint)DateTimeOffset.UtcNow.ToUnixTimeSeconds();
     }
 
     protected override void Browse(
@@ -51,10 +62,17 @@ public class SoundBridgeContentDirectory : DvProviderUpnpOrgContentDirectory1
         out uint aTotalMatches,
         out uint aUpdateID)
     {
-        aResult = DidlLite.EmptyResult();
-        aNumberReturned = 0;
-        aTotalMatches = 0;
-        aUpdateID = 0;
+        var flag = aBrowseFlag == "BrowseMetaData" ? BrowseFlag.Metadata : BrowseFlag.DirectChildren;
+
+        _logger.LogDebug("Browse ObjectID={ObjectID} Flag={Flag} Index={Index} Count={Count}",
+            aObjectID, aBrowseFlag, aStartingIndex, aRequestedCount);
+
+        var result = _resolver.Browse(aObjectID, flag, aStartingIndex, aRequestedCount);
+
+        aResult = result.DidlLite;
+        aNumberReturned = result.NumberReturned;
+        aTotalMatches = result.TotalMatches;
+        aUpdateID = result.UpdateId;
     }
 
     protected override void Search(
@@ -70,7 +88,10 @@ public class SoundBridgeContentDirectory : DvProviderUpnpOrgContentDirectory1
         out uint aTotalMatches,
         out uint aUpdateID)
     {
-        aResult = DidlLite.EmptyResult();
+        _logger.LogDebug("Search container={ContainerID} criteria={Criteria}",
+            aContainerID, aSearchCriteria);
+
+        aResult = DidlLiteBuilder.Empty();
         aNumberReturned = 0;
         aTotalMatches = 0;
         aUpdateID = 0;
