@@ -122,7 +122,7 @@ public static class Program
                     }
 
                     var mime = GetMimeType(fullPath);
-                    await Results.File(fullPath, mime).ExecuteAsync(http);
+                    await Results.File(fullPath, mime, enableRangeProcessing: true).ExecuteAsync(http);
                 }
                 catch (Exception ex)
                 {
