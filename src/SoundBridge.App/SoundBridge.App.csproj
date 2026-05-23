@@ -12,9 +12,12 @@
     <Prefer32bit>true</Prefer32bit>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="LiteDB" Version="5.0.21" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />
     <PackageReference Include="ohNet" Version="1.40.5989.300" />
     <PackageReference Include="ohNet.NET" Version="1.40.5989.300" />
     <PackageReference Include="ohNetGeneratedProviders.Combined" Version="1.40.5989.300" />
+    <PackageReference Include="Scalar.AspNetCore" Version="2.14.14" />
     <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />

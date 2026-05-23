@@ -8,9 +8,9 @@ namespace SoundBridge.App.Library;
 
 public class LocalLibraryResolver : IContentResolver
 {
-    private readonly Dictionary<string, string> _roots;
-    private readonly string _mediaHost;
-    private readonly int _mediaPort;
+    private readonly ILocalLibraryStore _store;
+    private readonly string _webServerHost;
+    private readonly int _webServerPort;
     private readonly ILogger<LocalLibraryResolver> _logger;
 
     private static readonly Dictionary<string, string> ExtensionToMime = new(StringComparer.OrdinalIgnoreCase)
@@ -22,16 +22,13 @@ public class LocalLibraryResolver : IContentResolver
     };
 
     public LocalLibraryResolver(
+        ILocalLibraryStore store,
         IOptions<SoundBridgeOptions> options,
         ILogger<LocalLibraryResolver> logger)
     {
-        _roots = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var root in options.Value.LibraryRoots)
-        {
-            _roots[root.Name] = Path.GetFullPath(root.Path);
-        }
-        _mediaHost = options.Value.MediaHost;
-        _mediaPort = options.Value.MediaPort;
+        _store = store;
+        _webServerHost = options.Value.WebServerHost;
+        _webServerPort = options.Value.WebServerPort;
         _logger = logger;
     }
 
@@ -46,8 +43,14 @@ public class LocalLibraryResolver : IContentResolver
         }
 
         var decodedParts = DecodeObjectId(objectId);
-        if (decodedParts.Count < 1 || !_roots.TryGetValue(decodedParts[0], out var rootPath))
+        if (decodedParts.Count < 1)
             return ErrorResult();
+
+        var root = _store.GetByName(decodedParts[0]);
+        if (root is null)
+            return ErrorResult();
+
+        var rootPath = Path.GetFullPath(root.Path);
 
         var relativePath = decodedParts.Count > 1
             ? Path.Combine(decodedParts.Skip(1).ToArray())
@@ -78,8 +81,14 @@ public class LocalLibraryResolver : IContentResolver
     public (string FullPath, string RootName) ResolveToPath(string objectId)
     {
         var decodedParts = DecodeObjectId(objectId);
-        if (decodedParts.Count < 1 || !_roots.TryGetValue(decodedParts[0], out var rootPath))
-            throw new InvalidOperationException($"Unknown root: {decodedParts.FirstOrDefault()}");
+        if (decodedParts.Count < 1)
+            throw new InvalidOperationException("Invalid object ID");
+
+        var root = _store.GetByName(decodedParts[0]);
+        if (root is null)
+            throw new InvalidOperationException($"Unknown root: {decodedParts[0]}");
+
+        var rootPath = Path.GetFullPath(root.Path);
 
         var relativePath = decodedParts.Count > 1
             ? Path.Combine(decodedParts.Skip(1).ToArray())
@@ -97,10 +106,10 @@ public class LocalLibraryResolver : IContentResolver
     private BrowseResult BrowseRoots()
     {
         var containers = new List<XElement>();
-        foreach (var (name, _) in _roots)
+        foreach (var root in _store.GetAll())
         {
             containers.Add(DidlLiteBuilder.Container(
-                Uri.EscapeDataString(name), "0", name));
+                Uri.EscapeDataString(root.Name), "0", root.Name));
         }
 
         var ordered = containers.OrderBy(c => c.Element("{http://purl.org/dc/elements/1.1/}title")?.Value).ToArray();
@@ -189,7 +198,7 @@ public class LocalLibraryResolver : IContentResolver
     private string BuildMediaUrl(string[] pathParts)
     {
         var encoded = string.Join("/", pathParts.Select(Uri.EscapeDataString));
-        return $"http://{_mediaHost}:{_mediaPort}/media/{encoded}";
+        return $"http://{_webServerHost}:{_webServerPort}/media/{encoded}";
     }
 
     private static string EncodeObjectId(params string[] segments)

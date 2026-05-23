@@ -10,4 +10,5 @@ WORKDIR /app
 COPY --from=build /app .
 VOLUME /app/data
 EXPOSE 1900/udp
+EXPOSE 5000
 ENTRYPOINT ["dotnet", "SoundBridge.App.dll"]

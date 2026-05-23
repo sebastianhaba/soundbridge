@@ -9,6 +9,8 @@ using SoundBridge.App.Core;
 using SoundBridge.App.Library;
 using SoundBridge.App.Providers;
 using SoundBridge.App.Services;
+using Scalar.AspNetCore;
+using LiteDB;
 
 namespace SoundBridge.App;
 
@@ -16,36 +18,40 @@ public static class Program
 {
     public static async Task Main(string[] args)
     {
-        var configuration = new ConfigurationBuilder()
+        var serilogConfig = new ConfigurationBuilder()
                            .AddJsonFile("appsettings.json")
                            .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production"}.json", true)
+                           .AddEnvironmentVariables()
                            .Build();
 
         Log.Logger = new LoggerConfiguration()
-                    .ReadFrom.Configuration(configuration)
+                    .ReadFrom.Configuration(serilogConfig)
                     .CreateLogger();
 
         try
         {
-            var sbSection = configuration.GetSection("SoundBridge");
-            var mediaHost = sbSection["MediaHost"] ?? "localhost";
-            var mediaPort = int.Parse(sbSection["MediaPort"] ?? "5000");
-
             var builder = WebApplication.CreateBuilder(args);
-            builder.WebHost.UseUrls($"http://{mediaHost}:{mediaPort}");
             builder.Host.UseSerilog();
 
             if (args.Contains("--service"))
                 builder.Host.UseWindowsService();
 
+            var sbSection = builder.Configuration.GetSection("SoundBridge");
+            var webServerHost = sbSection["WebServerHost"] ?? "0.0.0.0";
+            var webServerPort = int.Parse(sbSection["WebServerPort"] ?? "5000");
+            builder.WebHost.UseUrls($"http://{webServerHost}:{webServerPort}");
+
             var services = builder.Services;
 
             services.Configure<SoundBridgeOptions>(sbSection);
 
+            services.AddSingleton<LiteDatabase>(_ => new LiteDatabase("data/soundbridge.db"));
+            services.AddSingleton<ILocalLibraryStore, LocalLibraryStore>();
+
             services.AddSingleton(sp =>
             {
                 var opts = sp.GetRequiredService<IOptions<SoundBridgeOptions>>().Value;
-                var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<UdnManager>>();
+                var logger = sp.GetRequiredService<ILogger<UdnManager>>();
                 return new UdnManager(opts.UdnFilePath, logger);
             });
 
@@ -79,7 +85,7 @@ public static class Program
             {
                 var device = sp.GetRequiredService<DvDevice>();
                 var resolver = sp.GetRequiredService<IContentResolver>();
-                var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<SoundBridgeContentDirectory>>();
+                var logger = sp.GetRequiredService<ILogger<SoundBridgeContentDirectory>>();
                 return new SoundBridgeContentDirectory(device, resolver, logger);
             });
 
@@ -92,45 +98,14 @@ public static class Program
             services.AddHostedService<UpnpDeviceService>();
             services.AddHostedService<ContentDirectoryService>();
 
+            services.AddControllers();
+            services.AddOpenApi();
+
             var app = builder.Build();
 
-            app.MapGet("/media/{**path}", async (string? path, IContentResolver resolver, HttpContext http) =>
-            {
-                if (string.IsNullOrWhiteSpace(path))
-                {
-                    http.Response.StatusCode = 400;
-                    await http.Response.WriteAsync("Missing path");
-                    return;
-                }
-
-                try
-                {
-                    var (fullPath, _) = resolver.ResolveToPath(path);
-
-                    if (!PathValidator.IsAudioExtension(fullPath))
-                    {
-                        http.Response.StatusCode = 403;
-                        await http.Response.WriteAsync("Forbidden file type");
-                        return;
-                    }
-
-                    if (!File.Exists(fullPath))
-                    {
-                        http.Response.StatusCode = 404;
-                        await http.Response.WriteAsync("File not found");
-                        return;
-                    }
-
-                    var mime = GetMimeType(fullPath);
-                    await Results.File(fullPath, mime, enableRangeProcessing: true).ExecuteAsync(http);
-                }
-                catch (Exception ex)
-                {
-                    Log.Warning(ex, "Media request failed for path: {Path}", path);
-                    http.Response.StatusCode = 404;
-                    await http.Response.WriteAsync("Not found");
-                }
-            });
+            app.MapOpenApi();
+            app.MapScalarApiReference();
+            app.MapControllers();
 
             Log.Information("SoundBridge starting");
             await app.RunAsync();
@@ -143,18 +118,5 @@ public static class Program
         {
             await Log.CloseAndFlushAsync();
         }
-    }
-
-    private static string GetMimeType(string path)
-    {
-        var ext = Path.GetExtension(path).ToLowerInvariant();
-        return ext switch
-        {
-            ".mp3" => "audio/mpeg",
-            ".wav" => "audio/wav",
-            ".flac" => "audio/flac",
-            ".aac" => "audio/aac",
-            _ => "application/octet-stream"
-        };
     }
 }
