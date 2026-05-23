@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>SoundBridge.App</RootNamespace>
+    <OutputType>Exe</OutputType>
+    <NoWarn>NU1701</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <PlatformTarget>x86</PlatformTarget>
+    <Prefer32bit>true</Prefer32bit>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="LiteDB" Version="5.0.21" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />
+    <PackageReference Include="ohNet" Version="1.40.5989.300" />
+    <PackageReference Include="ohNet.NET" Version="1.40.5989.300" />
+    <PackageReference Include="ohNetGeneratedProviders.Combined" Version="1.40.5989.300" />
+    <PackageReference Include="Scalar.AspNetCore" Version="2.14.14" />
+    <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+    <PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.0" />
+  </ItemGroup>
+
+  <Target Name="CopyOhNetNative" AfterTargets="Publish">
+    <ItemGroup>
+      <OhNetNative Include="$(NuGetPackageRoot)ohnet/**/libohNet.so" />
+    </ItemGroup>
+    <Copy SourceFiles="@(OhNetNative)" DestinationFolder="$(PublishDir)" />
+  </Target>
+
+  <Target Name="RemoveOhNetFrameworkDll" AfterTargets="Publish">
+    <Delete Files="$(PublishDir)ohNet.dll" Condition="Exists('$(PublishDir)ohNet.dll')" />
+  </Target>
+</Project>

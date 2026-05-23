@@ -1,0 +1,20 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+*.sln.docstates
+
+## NuGet
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+
+## Serilog
+data/logs/
+*.log
+
+## IDE
+.idea/
+.vs/
+.vscode/
+*.swp
