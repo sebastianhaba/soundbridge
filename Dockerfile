@@ -3,7 +3,7 @@ WORKDIR /src
 COPY src/SoundBridge.App/SoundBridge.App.csproj src/SoundBridge.App/
 RUN dotnet restore src/SoundBridge.App/SoundBridge.App.csproj
 COPY . .
-RUN dotnet publish src/SoundBridge.App/SoundBridge.App.csproj -c Release -o /app
+RUN dotnet publish src/SoundBridge.App/SoundBridge.App.csproj -c Release -r linux-x64 -o /app
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app

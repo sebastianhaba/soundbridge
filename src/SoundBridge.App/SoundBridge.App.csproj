@@ -27,9 +27,11 @@
 
   <Target Name="CopyOhNetNative" AfterTargets="Publish">
     <ItemGroup>
-      <OhNetNative Include="$(NuGetPackageRoot)ohnet/**/libohNet.so" />
+      <OhNetNative Include="$(NuGetPackageRoot)ohnet*/**/lib/mono/x64/libohNet.so" />
     </ItemGroup>
     <Copy SourceFiles="@(OhNetNative)" DestinationFolder="$(PublishDir)" />
+    <Message Importance="high" Text="Copied libohNet.so from %(OhNetNative.Identity)" Condition="@(OhNetNative->Count()) &gt; 0" />
+    <Error Text="libohNet.so not found in NuGet cache" Condition="@(OhNetNative->Count()) == 0" />
   </Target>
 
   <Target Name="RemoveOhNetFrameworkDll" AfterTargets="Publish">
