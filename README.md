@@ -4,7 +4,19 @@
 
 UPnP MediaServer udostępniający lokalne pliki audio wzmacniaczom sieciowym (rendererom). Korzysta z Kestrel do serwowania plików i ohNet jako stosu UPnP.
 
-**Główna cecha: curated library** — SoundBridge nie czyta metadanych plików (ID3 tagów). Zamiast tego odwzorowuje strukturę katalogów 1:1. Jeśli masz dobrze zorganizowane foldery (`Muzyka/Artysta/Album/utwór.mp3`), renderer zobaczy je dokładnie w tej hierarchii. Żadnego skanowania, żadnych tagów — tylko to, co na dysku.
+**Główna cecha: biblioteka oparta na strukturze katalogów** — SoundBridge nie czyta metadanych plików (ID3 tagów). Zamiast tego odwzorowuje strukturę folderów 1:1. Jeśli masz dobrze zorganizowaną kolekcję (`Muzyka/Artysta/Album/utwór.mp3`), renderer zobaczy ją dokładnie w tej hierarchii. Żadnego skanowania, żadnych tagów — tylko to, co na dysku.
+
+## Uruchamianie
+
+SoundBridge działa w trzech trybach:
+
+| Tryb | Komenda |
+|------|---------|
+| **Konsola** | `dotnet run --project src/SoundBridge.App` |
+| **Windows Service** | `dotnet run --project src/SoundBridge.App -- --service` (wymaga administratora do instalacji: `sc create SoundBridge binPath=...`) |
+| **Docker** | `docker run -d soundbridge` |
+
+Zaleca się ustawienie konkretnego adresu IP w `WebServerHost` zamiast domyślnego `0.0.0.0` — zapewnia to poprawne działanie UPnP (SSDP, PresentationURL, ikony) w sieci lokalnej.
 
 ## Quick start
 
@@ -12,11 +24,9 @@ UPnP MediaServer udostępniający lokalne pliki audio wzmacniaczom sieciowym (re
 # Zbuduj
 dotnet build
 
-# Uruchom
+# Uruchom (przed uruchomieniem ustaw WebServerHost w appsettings.json na adres IP swojej maszyny)
 dotnet run --project src/SoundBridge.App
 ```
-
-Aplikacja wystartuje Kestrel na adresie z konfiguracji (domyślnie `http://0.0.0.0:5000`) oraz ogłosi się jako urządzenie UPnP w sieci lokalnej.
 
 ## Konfiguracja
 
@@ -29,11 +39,13 @@ Ustawienia pochodzą z dwóch źródeł — **zmienne środowiskowe mają priory
   "SoundBridge": {
     "FriendlyName": "SoundBridge",
     "UdnFilePath": "data/device.udn",
-    "WebServerHost": "0.0.0.0",
+    "WebServerHost": "192.168.1.100",
     "WebServerPort": 5000
   }
 }
 ```
+
+> **Uwaga:** `WebServerHost` ustaw na rzeczywisty adres IP maszyny w sieci lokalnej. `0.0.0.0` spowoduje, że PresentationURL, ikony i SSDP nie będą działać poprawnie.
 
 ### Przez zmienne środowiskowe
 
@@ -57,7 +69,7 @@ $env:SoundBridge__WebServerPort = 8080
 |-------|-----------|------|
 | `FriendlyName` | `SoundBridge` | Nazwa wyświetlana w rendererze |
 | `UdnFilePath` | `data/device.udn` | Ścieżka pliku UDN |
-| `WebServerHost` | `0.0.0.0` | Adres nasłuchiwania Kestrel |
+| `WebServerHost` | `0.0.0.0` | Adres IP maszyny — **zaleca się ustawienie konkretnego IP** |
 | `WebServerPort` | `5000` | Port nasłuchiwania Kestrel |
 
 ## Zarządzanie bibliotekami — Web API
@@ -77,15 +89,15 @@ Biblioteki (Local Libraries) to ścieżki w systemie plików widoczne jako głó
 
 ```bash
 # Pobierz listę
-curl http://localhost:5000/api/local-libraries
+curl http://{WebServerHost}:{WebServerPort}/api/local-libraries
 
 # Dodaj bibliotekę
-curl -X POST http://localhost:5000/api/local-libraries \
+curl -X POST http://{WebServerHost}:{WebServerPort}/api/local-libraries \
   -H "Content-Type: application/json" \
   -d '{"name": "Muzyka", "path": "I:\\music"}'
 
 # Usuń bibliotekę
-curl -X DELETE http://localhost:5000/api/local-libraries/Muzyka
+curl -X DELETE http://{WebServerHost}:{WebServerPort}/api/local-libraries/Muzyka
 ```
 
 Biblioteki zapisywane są w LiteDB (`data/soundbridge.db`). Renderery UPnP widzą je przy Browse z `ObjectID=0`.
@@ -109,7 +121,7 @@ docker run -d \
   -p 5000:5000 \
   -p 1900:1900/udp \
   -v /host/data:/app/data \
-  -e SoundBridge__WebServerHost=0.0.0.0 \
+  -e SoundBridge__WebServerHost={WebServerHost} \
   -e SoundBridge__FriendlyName="SoundBridge-Docker" \
   soundbridge
 ```
