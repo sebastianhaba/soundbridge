@@ -1,6 +1,10 @@
 # SoundBridge
 
+<img src="assets/social/soundbridge.png" alt="SoundBridge" width="600">
+
 UPnP MediaServer udostępniający lokalne pliki audio wzmacniaczom sieciowym (rendererom). Korzysta z Kestrel do serwowania plików i ohNet jako stosu UPnP.
+
+**Główna cecha: curated library** — SoundBridge nie czyta metadanych plików (ID3 tagów). Zamiast tego odwzorowuje strukturę katalogów 1:1. Jeśli masz dobrze zorganizowane foldery (`Muzyka/Artysta/Album/utwór.mp3`), renderer zobaczy je dokładnie w tej hierarchii. Żadnego skanowania, żadnych tagów — tylko to, co na dysku.
 
 ## Quick start
 
@@ -24,7 +28,6 @@ Ustawienia pochodzą z dwóch źródeł — **zmienne środowiskowe mają priory
 {
   "SoundBridge": {
     "FriendlyName": "SoundBridge",
-    "Manufacturer": "SoundBridge",
     "UdnFilePath": "data/device.udn",
     "WebServerHost": "0.0.0.0",
     "WebServerPort": 5000
@@ -53,7 +56,6 @@ $env:SoundBridge__WebServerPort = 8080
 | Klucz | Domyślnie | Opis |
 |-------|-----------|------|
 | `FriendlyName` | `SoundBridge` | Nazwa wyświetlana w rendererze |
-| `Manufacturer` | `SoundBridge` | Producent |
 | `UdnFilePath` | `data/device.udn` | Ścieżka pliku UDN |
 | `WebServerHost` | `0.0.0.0` | Adres nasłuchiwania Kestrel |
 | `WebServerPort` | `5000` | Port nasłuchiwania Kestrel |

@@ -16,7 +16,7 @@
 2. **Project structure** — `SoundBridge.sln` + `src/SoundBridge.App/` (jeden projekt na start, gotowy na podział).
 3. **UPnP hosting** — dwa `BackgroundService`: `UpnpDeviceService` (stos ohNet) + `ContentDirectoryService` (logika serwowania).
 4. **Logging** — Serilog: Console + File, sterowane z `appsettings.json` przez `Serilog.Settings.Configuration`.
-5. **Configuration** — `appsettings.json` + zmienne środowiskowe (`SoundBridge__*`), env vars mają wyższy priorytet. `.NET` standardowe `ConfigurationBuilder` w `CreateBuilder`. Klucze: `FriendlyName`, `Manufacturer`, `UdnFilePath`, `WebServerHost`, `WebServerPort`.
+5. **Configuration** — `appsettings.json` + zmienne środowiskowe (`SoundBridge__*`), env vars mają wyższy priorytet. `.NET` standardowe `ConfigurationBuilder` w `CreateBuilder`. Klucze: `FriendlyName`, `UdnFilePath`, `WebServerHost`, `WebServerPort`.
 6. **Service hosting** — `--service` w args włącza `AddWindowsService()`, bez = konsola, docker też konsola.
 7. **DI dla UPnP** — `DvDevice` i providery jako singletony w DI; `ContentDirectoryService` dostaje providera przez konstruktor.
 8. **UPnP providers** — tylko standard UPnP.org (`ContentDirectory:1` + `ConnectionManager:1`). OpenHome.org na później.
@@ -37,3 +37,5 @@
 23. **Web API** — Kontrolery MVC (`LocalLibrariesController`, `MediaController`). `/api/local-libraries` — CRUD. `/media/{**path}` — serwowanie plików audio, zakresowe range request.
 24. **LiteDB persistence** — `data/soundbridge.db`, singleton w DI, kolekcja `local_libraries` z indeksem unikalnym na `Name`.
 25. **Swagger / Scalar** — `Microsoft.AspNetCore.OpenApi` + `Scalar.AspNetCore`, dostępne zawsze na `/scalar/v1`.
+26. **Device metadata** — `Manufacturer` hardcoded `"Sebastian Haba"`, `ManufacturerURL` hardcoded `"https://github.com/sebastianhaba"`, `ModelName` hardcoded `"SoundBridge"`, `ModelNumber` (`"0.1.0"`), `ModelURL` (`"https://github.com/sebastianhaba/soundbridge"`). Tylko `FriendlyName` konfigurowalne.
+27. **PresentationURL** — generowany dynamicznie z `WebServerHost` i `WebServerPort` jako `http://{host}:{port}/scalar/v1`. Pomijany jeśli host to wildcard (`0.0.0.0`, `+`, `::`).

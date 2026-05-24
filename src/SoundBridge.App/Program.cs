@@ -1,3 +1,4 @@
+using System.Net;
 using Microsoft.Extensions.Options;
 using OpenHome.Net.Core;
 using OhNetLibrary = OpenHome.Net.Core.Library;
@@ -55,11 +56,13 @@ public static class Program
                 return new UdnManager(opts.UdnFilePath, logger);
             });
 
-            services.AddSingleton<OhNetLibrary>(_ =>
+            services.AddSingleton<OhNetLibrary>(sp =>
             {
+                var opts = sp.GetRequiredService<IOptions<SoundBridgeOptions>>().Value;
                 var initParams = new InitParams();
                 var library = OhNetLibrary.Create(initParams);
                 library.StartDv();
+                SelectBestSubnet(library, opts.WebServerHost);
                 return library;
             });
 
@@ -73,9 +76,36 @@ public static class Program
                 device.SetAttribute("Upnp.Type", "MediaServer");
                 device.SetAttribute("Upnp.Version", "1");
                 device.SetAttribute("Upnp.FriendlyName", opts.FriendlyName);
-                device.SetAttribute("Upnp.Manufacturer", opts.Manufacturer);
+                device.SetAttribute("Upnp.Manufacturer", "Sebastian Haba");
+                device.SetAttribute("Upnp.ManufacturerUrl", "https://github.com/sebastianhaba");
                 device.SetAttribute("Upnp.ModelName", "SoundBridge");
-                device.SetAttribute("Upnp.ModelNumber", "1.0");
+                device.SetAttribute("Upnp.ModelNumber", "0.1.0");
+                device.SetAttribute("Upnp.ModelUrl", "https://github.com/sebastianhaba/soundbridge");
+
+                var presentationUrl = BuildPresentationUrl(opts.WebServerHost, opts.WebServerPort);
+                if (presentationUrl is not null)
+                    device.SetAttribute("Upnp.PresentationUrl", presentationUrl);
+
+                var iconBaseUrl = BuildIconBaseUrl(opts.WebServerHost, opts.WebServerPort);
+                if (iconBaseUrl is not null)
+                {
+                    device.SetAttribute("Upnp.IconList", $@"
+<icon>
+    <mimetype>image/png</mimetype>
+    <width>256</width>
+    <height>256</height>
+    <depth>32</depth>
+    <url>{iconBaseUrl}/icon_256.png</url>
+</icon>
+<icon>
+    <mimetype>image/png</mimetype>
+    <width>48</width>
+    <height>48</height>
+    <depth>32</depth>
+    <url>{iconBaseUrl}/icon_48.png</url>
+</icon>");
+                }
+
                 return device;
             });
 
@@ -103,6 +133,7 @@ public static class Program
 
             var app = builder.Build();
 
+            app.UseStaticFiles();
             app.MapOpenApi();
             app.MapScalarApiReference();
             app.MapControllers();
@@ -118,5 +149,42 @@ public static class Program
         {
             await Log.CloseAndFlushAsync();
         }
+    }
+
+    private static string? BuildPresentationUrl(string host, int port)
+    {
+        if (host is "0.0.0.0" or "+" or "::" or "")
+            return null;
+
+        return $"http://{host}:{port}/scalar/v1";
+    }
+
+    private static string? BuildIconBaseUrl(string host, int port)
+    {
+        if (host is "0.0.0.0" or "+" or "::" or "")
+            return null;
+
+        return $"http://{host}:{port}/icons";
+    }
+
+    private static void SelectBestSubnet(OhNetLibrary library, string host)
+    {
+        if (host is "0.0.0.0" or "+" or "::" or "")
+            return;
+
+        using var subnetList = new SubnetList();
+        for (uint i = 0; i < subnetList.Size(); i++)
+        {
+            var adapter = subnetList.SubnetAt(i);
+            var fullName = adapter.FullName();
+            if (fullName.StartsWith(host))
+            {
+                Log.Information("Selected UPnP subnet: {Subnet}", fullName);
+                library.SetCurrentSubnet(adapter);
+                return;
+            }
+        }
+
+        Log.Warning("No subnet found matching {Host}, using all subnets", host);
     }
 }
