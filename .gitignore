@@ -18,3 +18,4 @@ data/logs/
 .vs/
 .vscode/
 *.swp
+/src/SoundBridge.App/data

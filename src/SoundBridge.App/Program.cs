@@ -79,7 +79,7 @@ public static class Program
                 device.SetAttribute("Upnp.Manufacturer", "Sebastian Haba");
                 device.SetAttribute("Upnp.ManufacturerUrl", "https://github.com/sebastianhaba");
                 device.SetAttribute("Upnp.ModelName", "SoundBridge");
-                device.SetAttribute("Upnp.ModelNumber", "0.1.0");
+                device.SetAttribute("Upnp.ModelNumber", "0.1.1");
                 device.SetAttribute("Upnp.ModelUrl", "https://github.com/sebastianhaba/soundbridge");
 
                 var presentationUrl = BuildPresentationUrl(opts.WebServerHost, opts.WebServerPort);
