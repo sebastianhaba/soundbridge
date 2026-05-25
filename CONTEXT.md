@@ -8,12 +8,15 @@
 - **Local Library** — wpis w bazie LiteDB definiujący ścieżkę w systemie plików udostępnianą przez SoundBridge jako korzeń do przeglądania. Każda biblioteka ma unikalną nazwę-ID (np. `"Muzyka"`, `"Radio"`), która jest używana jako `@id` w DIDL-Lite. Zarządzana przez Web API (`/api/local-libraries`). Renderer widzi je jako kontenery najwyższego poziomu.
 - **ObjectID** — nieprzezroczysty identyfikator kontenera lub itemu w ContentDirectory. SoundBridge koduje go jako `URL-encode({rootName}/{ścieżka_względna})`. Specjalna wartość `"0"` oznacza korzeń — zwraca listę Local Libraries z bazy.
 - **Library Resolver** — komponent który mapuje ObjectID na zasoby w bibliotece. `LocalLibraryResolver` to pierwsza implementacja serwująca lokalne pliki; w przyszłości mogą dojść resolvery dla podcastów, radia itp.
-- **ILocalLibraryStore** — interfejs serwisu enkapsulującego dostęp do kolekcji `local_libraries` w LiteDB. Wstrzykiwany do resolwera, kontrolera API i `ContentDirectoryService`.
+- **ILocalLibraryStore** — interfejs serwisu enkapsulującego dostęp do kolekcji `local_libraries` w LiteDB. Rezyduje w `SoundBridge.Libraries.LocalLibrary` wraz z całą implementacją. Wstrzykiwany do resolwera, kontrolera API i `ContentDirectoryService`.
+- **SoundBridge.Abstractions** — projekt z kontraktami i typami współdzielonymi między warstwami. Zawiera `IContentResolver`, `BrowseResult`, `BrowseFlag`, `SoundBridgeOptions`. Referencjonowany przez wszystkie inne projekty.
+- **SoundBridge.Shared** — projekt z narzędziami bez zależności nugetowych. Zawiera `DidlLiteBuilder` (generacja DIDL-Lite XML) i `PathValidator` (walidacja ścieżek i rozszerzeń audio).
+- **SoundBridge.Libraries.LocalLibrary** — projekt z pełną implementacją obsługi lokalnych bibliotek muzycznych. Zawiera model `LocalLibrary`, `ILocalLibraryStore` + `LocalLibraryStore` (LiteDB), `LocalLibraryResolver` (implementacja `IContentResolver`), `LocalLibrariesController` (Web API CRUD). Referencjonuje `Abstractions`, `Shared` oraz NuGet `LiteDB`.
 
 ## Decisions (ADR candidates)
 
 1. **UDN persistence** — plik `device.udn` w katalogu `data/`, ścieżka konfigurowalna w `appsettings.json`.
-2. **Project structure** — `SoundBridge.sln` + `src/SoundBridge.App/` (jeden projekt na start, gotowy na podział).
+2. **Project structure** — rozwiązanie z czterema projektami: `SoundBridge.Abstractions` (kontrakty), `SoundBridge.Shared` (utility), `SoundBridge.Libraries.LocalLibrary` (implementacja lokalnych bibliotek), `SoundBridge.App` (host ASP.NET + UPnP). Wzorzec `Libraries.{Nazwa}` pozwala na dodawanie kolejnych typów bibliotek (podcasty, radio) jako osobne csproj.
 3. **UPnP hosting** — dwa `BackgroundService`: `UpnpDeviceService` (stos ohNet) + `ContentDirectoryService` (logika serwowania).
 4. **Logging** — Serilog: Console + File, sterowane z `appsettings.json` przez `Serilog.Settings.Configuration`.
 5. **Configuration** — `appsettings.json` + zmienne środowiskowe (`SoundBridge__*`), env vars mają wyższy priorytet. `.NET` standardowe `ConfigurationBuilder` w `CreateBuilder`. Klucze: `FriendlyName`, `UdnFilePath`, `WebServerHost`, `WebServerPort`.
@@ -29,12 +32,12 @@
 15. **ObjectID encoding** — `URL-encode({rootName}/{ścieżka_względna})`; specjalne `"0"` = lista rootów z DB.
 16. **Media hosting** — Kestrel (ASP.NET Core), port i host z configu (`WebServerPort`, `WebServerHost`). URL: `/media/{rootName}/{path...}` z `Results.File()` (range requests przez Kestrel).
 17. **Path traversal** — autoryzacja ścieżki względem roota; tylko rozszerzenia audio (mp3, wav, flac, aac).
-18. **Library resolver pattern** — `IContentResolver` wstrzykiwany do `SoundBridgeContentDirectory`; `LocalLibraryResolver` — pierwsza implementacja.
+18. **Library resolver pattern** — `IContentResolver` w `SoundBridge.Abstractions`, wstrzykiwany do `SoundBridgeContentDirectory`; `LocalLibraryResolver` w `SoundBridge.Libraries.LocalLibrary` — pierwsza implementacja.
 19. **Browse** — kontenery przed itemami, alfabetycznie, stronicowane. `childCount="0"`. Oba `BrowseFlag` (DirectChildren + Metadata). `Search` nierozpoczęte.
 20. **SystemUpdateID** — Unix timestamp (sekundy od epoch). `ContainerUpdateIDs` puste.
 21. **SortCriteria** — ignorowane (`SortCapabilities=""`).
 22. **x86 build** — Debug wymusza `<PlatformTarget>x86</PlatformTarget>` ponieważ natywny DLL ohNet jest 32-bitowy. Bez tego `BadImageFormatException` przy starcie.
-23. **Web API** — Kontrolery MVC (`LocalLibrariesController`, `MediaController`). `/api/local-libraries` — CRUD. `/media/{**path}` — serwowanie plików audio, zakresowe range request.
+23. **Web API** — Kontrolery MVC (`LocalLibrariesController` w `SoundBridge.Libraries.LocalLibrary`, `MediaController` w `SoundBridge.App`). `/api/local-libraries` — CRUD. `/media/{**path}` — serwowanie plików audio, zakresowe range request.
 24. **LiteDB persistence** — `data/soundbridge.db`, singleton w DI, kolekcja `local_libraries` z indeksem unikalnym na `Name`.
 25. **Swagger / Scalar** — `Microsoft.AspNetCore.OpenApi` + `Scalar.AspNetCore`, dostępne zawsze na `/scalar/v1`.
 26. **Device metadata** — `Manufacturer` hardcoded `"Sebastian Haba"`, `ManufacturerURL` hardcoded `"https://github.com/sebastianhaba"`, `ModelName` hardcoded `"SoundBridge"`, `ModelNumber` (`"0.1.0"`), `ModelURL` (`"https://github.com/sebastianhaba/soundbridge"`). Tylko `FriendlyName` konfigurowalne.
