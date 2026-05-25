@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using SoundBridge.App.Core;
-using SoundBridge.App.Library;
+using SoundBridge.Abstractions;
+using SoundBridge.Shared;
 
 namespace SoundBridge.App.Controllers;
 

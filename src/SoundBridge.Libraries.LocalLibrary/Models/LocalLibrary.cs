@@ -1,4 +1,4 @@
-namespace SoundBridge.App.Models;
+namespace SoundBridge.Libraries.LocalLibrary;
 
 public class LocalLibrary
 {

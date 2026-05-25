@@ -1,7 +1,6 @@
 using LiteDB;
-using SoundBridge.App.Models;
 
-namespace SoundBridge.App.Library;
+namespace SoundBridge.Libraries.LocalLibrary;
 
 public class LocalLibraryStore : ILocalLibraryStore
 {

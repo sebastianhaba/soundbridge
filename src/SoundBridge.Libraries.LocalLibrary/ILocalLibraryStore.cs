@@ -1,6 +1,4 @@
-using SoundBridge.App.Models;
-
-namespace SoundBridge.App.Library;
+namespace SoundBridge.Libraries.LocalLibrary;
 
 public interface ILocalLibraryStore
 {

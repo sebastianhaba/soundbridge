@@ -5,9 +5,9 @@ using OhNetLibrary = OpenHome.Net.Core.Library;
 using OpenHome.Net.Device;
 using OpenHome.Net.Device.Providers;
 using Serilog;
-using SoundBridge.App.Configuration;
+using SoundBridge.Abstractions;
+using SoundBridge.Libraries.LocalLibrary;
 using SoundBridge.App.Core;
-using SoundBridge.App.Library;
 using SoundBridge.App.Providers;
 using SoundBridge.App.Services;
 using Scalar.AspNetCore;
@@ -128,7 +128,8 @@ public static class Program
             services.AddHostedService<UpnpDeviceService>();
             services.AddHostedService<ContentDirectoryService>();
 
-            services.AddControllers();
+            services.AddControllers()
+                .AddApplicationPart(typeof(LocalLibrariesController).Assembly);
             services.AddOpenApi();
 
             var app = builder.Build();

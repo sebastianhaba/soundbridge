@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using SoundBridge.App.Library;
+using SoundBridge.Libraries.LocalLibrary;
 
 namespace SoundBridge.App.Services;
 

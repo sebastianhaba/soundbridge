@@ -1,4 +1,4 @@
-namespace SoundBridge.App.Core;
+namespace SoundBridge.Shared;
 
 public static class PathValidator
 {

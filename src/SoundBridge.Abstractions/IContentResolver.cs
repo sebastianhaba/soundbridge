@@ -1,4 +1,4 @@
-namespace SoundBridge.App.Library;
+namespace SoundBridge.Abstractions;
 
 public enum BrowseFlag
 {

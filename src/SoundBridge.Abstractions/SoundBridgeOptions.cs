@@ -1,4 +1,4 @@
-namespace SoundBridge.App.Configuration;
+namespace SoundBridge.Abstractions;
 
 public class SoundBridgeOptions
 {

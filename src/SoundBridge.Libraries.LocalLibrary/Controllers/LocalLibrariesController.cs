@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using SoundBridge.App.Library;
 
-namespace SoundBridge.App.Controllers;
+namespace SoundBridge.Libraries.LocalLibrary;
 
 [ApiController]
 [Route("api/local-libraries")]

@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Logging;
 using OpenHome.Net.Device;
 using OpenHome.Net.Device.Providers;
-using SoundBridge.App.Core;
-using SoundBridge.App.Library;
+using SoundBridge.Abstractions;
+using SoundBridge.Shared;
 
 namespace SoundBridge.App.Providers;
 

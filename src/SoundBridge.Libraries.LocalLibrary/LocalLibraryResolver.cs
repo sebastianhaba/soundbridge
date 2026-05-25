@@ -1,10 +1,10 @@
 using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using SoundBridge.App.Configuration;
-using SoundBridge.App.Core;
+using SoundBridge.Abstractions;
+using SoundBridge.Shared;
 
-namespace SoundBridge.App.Library;
+namespace SoundBridge.Libraries.LocalLibrary;
 
 public class LocalLibraryResolver : IContentResolver
 {
