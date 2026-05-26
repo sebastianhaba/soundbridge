@@ -15,6 +15,7 @@
     <ProjectReference Include="..\SoundBridge.Abstractions\SoundBridge.Abstractions.csproj" />
     <ProjectReference Include="..\SoundBridge.Shared\SoundBridge.Shared.csproj" />
     <ProjectReference Include="..\SoundBridge.Libraries.LocalLibrary\SoundBridge.Libraries.LocalLibrary.csproj" />
+    <ProjectReference Include="..\SoundBridge.Libraries.RadioOnline\SoundBridge.Libraries.RadioOnline.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="LiteDB" Version="5.0.21" />

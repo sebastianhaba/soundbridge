@@ -53,4 +53,20 @@ public static class DidlLiteBuilder
             )
         );
     }
+
+    public static XElement BroadcastItem(string id, string parentId, string title,
+        string mimeType, string resourceUrl)
+    {
+        return new XElement(DidlNs + "item",
+            new XAttribute("id", id),
+            new XAttribute("parentID", parentId),
+            new XAttribute("restricted", 1),
+            new XElement(DcNs + "title", title),
+            new XElement(UpnpNs + "class", "object.item.audioItem.audioBroadcast"),
+            new XElement(DidlNs + "res",
+                new XAttribute("protocolInfo", $"http-get:*:{mimeType}:*"),
+                resourceUrl
+            )
+        );
+    }
 }

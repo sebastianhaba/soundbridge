@@ -7,6 +7,7 @@ using OpenHome.Net.Device.Providers;
 using Serilog;
 using SoundBridge.Abstractions;
 using SoundBridge.Libraries.LocalLibrary;
+using SoundBridge.Libraries.RadioOnline;
 using SoundBridge.App.Core;
 using SoundBridge.App.Providers;
 using SoundBridge.App.Services;
@@ -48,6 +49,7 @@ public static class Program
 
             services.AddSingleton<LiteDatabase>(_ => new LiteDatabase("data/soundbridge.db"));
             services.AddSingleton<ILocalLibraryStore, LocalLibraryStore>();
+            services.AddSingleton<IRadioOnlineStore, RadioOnlineStore>();
 
             services.AddSingleton(sp =>
             {
@@ -109,7 +111,11 @@ public static class Program
                 return device;
             });
 
-            services.AddSingleton<IContentResolver, LocalLibraryResolver>();
+            services.AddSingleton<LocalLibraryResolver>();
+            services.AddSingleton<RadioOnlineResolver>();
+            services.AddSingleton<IContentResolver>(sp => new CompositeResolver(
+                sp.GetRequiredService<LocalLibraryResolver>(),
+                sp.GetRequiredService<RadioOnlineResolver>()));
 
             services.AddSingleton<DvProviderUpnpOrgContentDirectory1>(sp =>
             {
@@ -129,7 +135,8 @@ public static class Program
             services.AddHostedService<ContentDirectoryService>();
 
             services.AddControllers()
-                .AddApplicationPart(typeof(LocalLibrariesController).Assembly);
+                .AddApplicationPart(typeof(LocalLibrariesController).Assembly)
+                .AddApplicationPart(typeof(RadioOnlineController).Assembly);
             services.AddOpenApi();
 
             var app = builder.Build();

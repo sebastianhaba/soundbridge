@@ -2,7 +2,7 @@
 
 <img src="assets/social/soundbridge.png" alt="SoundBridge" width="600">
 
-UPnP MediaServer udostępniający lokalne pliki audio wzmacniaczom sieciowym (rendererom). Korzysta z Kestrel do serwowania plików i ohNet jako stosu UPnP.
+UPnP MediaServer udostępniający lokalne pliki audio oraz internetowe strumienie radiowe wzmacniaczom sieciowym (rendererom). Korzysta z Kestrel do serwowania plików i ohNet jako stosu UPnP.
 
 **Główna cecha: biblioteka oparta na strukturze katalogów** — SoundBridge nie czyta metadanych plików (ID3 tagów). Zamiast tego odwzorowuje strukturę folderów 1:1. Jeśli masz dobrze zorganizowaną kolekcję (`Muzyka/Artysta/Album/utwór.mp3`), renderer zobaczy ją dokładnie w tej hierarchii. Żadnego skanowania, żadnych tagów — tylko to, co na dysku.
 
@@ -102,6 +102,55 @@ curl -X DELETE http://{WebServerHost}:{WebServerPort}/api/local-libraries/Muzyka
 
 Biblioteki zapisywane są w LiteDB (`data/soundbridge.db`). Renderery UPnP widzą je przy Browse z `ObjectID=0`.
 
+## Radio Online — Web API
+
+Wirtualna biblioteka strumieni radiowych. Zawsze obecna jako kontener najwyższego poziomu (domyślnie `"Radio Online"`), nie wymaga jawnego tworzenia. Nazwę roota można zmienić przez API.
+
+### `/api/radio-online`
+
+| Metoda | Ścieżka | Opis |
+|--------|---------|------|
+| `GET` | `/api/radio-online` | Nazwa roota |
+| `PUT` | `/api/radio-online` | Zmień nazwę roota |
+
+### `/api/radio-online/stations`
+
+| Metoda | Ścieżka | Opis |
+|--------|---------|------|
+| `GET` | `/api/radio-online/stations` | Lista wszystkich stacji |
+| `GET` | `/api/radio-online/stations/{name}` | Pojedyncza stacja |
+| `POST` | `/api/radio-online/stations` | Dodaj stację |
+| `PUT` | `/api/radio-online/stations/{name}` | Edytuj stację (URL, MimeType) |
+| `DELETE` | `/api/radio-online/stations/{name}` | Usuń stację |
+
+### Dostępne MIME types
+
+`audio/mpeg` (MP3), `audio/aac`, `audio/flac`, `audio/x-mpegurl` (M3U playlisty)
+
+### Przykłady
+
+```bash
+# Zmień nazwę roota
+curl -X PUT http://{host}:{port}/api/radio-online \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Internet Radio"}'
+
+# Dodaj stację
+curl -X POST http://{host}:{port}/api/radio-online/stations \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Radio Nowy Świat", "url": "https://stream.example.com/rns.mp3", "mimeType": "audio/mpeg"}'
+
+# Edytuj URL stacji
+curl -X PUT http://{host}:{port}/api/radio-online/stations/Radio%20Nowy%20Świat \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://new-stream.example.com/rns.aac", "mimeType": "audio/aac"}'
+
+# Usuń stację
+curl -X DELETE http://{host}:{port}/api/radio-online/stations/Radio%20Nowy%20Świat
+```
+
+Każda stacja pojawia się jako kontener z jednym dzieckiem `"PlayStream"` (UPnP `audioBroadcast`) — renderer odtwarza stream bezpośrednio z zewnętrznego URL-a.
+
 ## Scalar API Reference
 
 Dokumentacja OpenAPI dostępna zawsze pod `/scalar/v1` — interaktywne UI do testowania endpointów API.
@@ -135,12 +184,19 @@ Wolumen `/app/data` przechowuje `device.udn`, `soundbridge.db` i logi.
 ## Struktura projektu
 
 ```
-src/SoundBridge.App/
-├── Configuration/     # SoundBridgeOptions
-├── Controllers/       # LocalLibrariesController, MediaController
-├── Core/              # UdnManager, DidlLiteBuilder, PathValidator
-├── Library/           # IContentResolver, LocalLibraryResolver, ILocalLibraryStore, LocalLibraryStore
-├── Models/            # LocalLibrary
-├── Providers/         # UPnP ContentDirectory + ConnectionManager
-└── Services/          # UpnpDeviceService, ContentDirectoryService
+src/
+├── SoundBridge.Abstractions/       # IContentResolver, BrowseResult, SoundBridgeOptions
+├── SoundBridge.Shared/             # DidlLiteBuilder, PathValidator
+├── SoundBridge.Libraries.LocalLibrary/  # Lokalne biblioteki plików
+│   ├── Models/                     # LocalLibrary
+│   └── Controllers/                # LocalLibrariesController
+├── SoundBridge.Libraries.RadioOnline/   # Strumienie radiowe
+│   ├── Models/                     # RadioRoot, RadioStation
+│   └── Controllers/                # RadioOnlineController
+└── SoundBridge.App/                # Host ASP.NET + UPnP
+    ├── Controllers/                # MediaController
+    ├── Core/                       # UdnManager
+    ├── Providers/                  # SoundBridgeContentDirectory, SoundBridgeConnectionManager
+    ├── Services/                   # UpnpDeviceService, ContentDirectoryService
+    └── CompositeResolver.cs        # Dyspozytor sub-resolverów
 ```

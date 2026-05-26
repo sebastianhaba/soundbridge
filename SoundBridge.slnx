@@ -3,6 +3,7 @@
     <Project Path="src/SoundBridge.Abstractions/SoundBridge.Abstractions.csproj" />
     <Project Path="src/SoundBridge.Shared/SoundBridge.Shared.csproj" />
     <Project Path="src/SoundBridge.Libraries.LocalLibrary/SoundBridge.Libraries.LocalLibrary.csproj" />
+    <Project Path="src/SoundBridge.Libraries.RadioOnline/SoundBridge.Libraries.RadioOnline.csproj" />
     <Project Path="src/SoundBridge.App/SoundBridge.App.csproj" />
   </Folder>
 </Solution>
