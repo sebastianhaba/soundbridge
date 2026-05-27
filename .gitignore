@@ -19,3 +19,5 @@ data/logs/
 .vscode/
 *.swp
 /src/SoundBridge.App/data
+/src/SoundBridge.App/data/soundbridge.db
+/src/SoundBridge.App/data/soundbridge-log.db

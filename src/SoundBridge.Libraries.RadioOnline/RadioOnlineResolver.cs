@@ -54,15 +54,20 @@ public class RadioOnlineResolver : IContentResolver
             if (flag == BrowseFlag.Metadata)
                 return GetStationMetadata(rootName, station);
 
-            return BrowseStreams(station);
+            return BrowseStreams(rootName, station);
         }
 
-        if (decodedParts.Count == 3 && decodedParts[2] == "PlayStream")
+        if (decodedParts.Count >= 3)
         {
+            var streamName = decodedParts[2];
+            var stream = _store.GetStream(stationName, streamName);
+            if (stream is null)
+                return ErrorResult();
+
             if (flag == BrowseFlag.DirectChildren)
                 return ErrorResult();
 
-            return GetStreamItemMetadata(rootName, station);
+            return GetStreamItemMetadata(rootName, station, stream);
         }
 
         return ErrorResult();
@@ -123,27 +128,32 @@ public class RadioOnlineResolver : IContentResolver
             (uint)DateTimeOffset.UtcNow.ToUnixTimeSeconds());
     }
 
-    private BrowseResult BrowseStreams(RadioStation station)
+    private BrowseResult BrowseStreams(string rootName, RadioStation station)
     {
-        var rootName = _store.GetRootName();
         var parentId = EncodeObjectId(rootName, station.Name);
-        var id = EncodeObjectId(rootName, station.Name, "PlayStream");
+        var items = new List<XElement>();
 
-        var item = DidlLiteBuilder.BroadcastItem(id, parentId, "PlayStream",
-            station.MimeType, station.Url);
+        foreach (var stream in _store.GetStreamsByStation(station.Name).OrderBy(s => s.Name))
+        {
+            var id = EncodeObjectId(rootName, station.Name, stream.Name);
+            items.Add(DidlLiteBuilder.BroadcastItem(id, parentId, stream.Name,
+                stream.MimeType, stream.Url));
+        }
 
         return new BrowseResult(
-            DidlLiteBuilder.Build(item), 1, 1,
+            DidlLiteBuilder.Build(items.ToArray()),
+            (uint)items.Count,
+            (uint)items.Count,
             (uint)DateTimeOffset.UtcNow.ToUnixTimeSeconds());
     }
 
-    private BrowseResult GetStreamItemMetadata(string rootName, RadioStation station)
+    private BrowseResult GetStreamItemMetadata(string rootName, RadioStation station, Stream stream)
     {
         var parentId = EncodeObjectId(rootName, station.Name);
-        var id = EncodeObjectId(rootName, station.Name, "PlayStream");
+        var id = EncodeObjectId(rootName, station.Name, stream.Name);
 
-        var item = DidlLiteBuilder.BroadcastItem(id, parentId, "PlayStream",
-            station.MimeType, station.Url);
+        var item = DidlLiteBuilder.BroadcastItem(id, parentId, stream.Name,
+            stream.MimeType, stream.Url);
 
         return new BrowseResult(
             DidlLiteBuilder.Build(item), 1, 1,

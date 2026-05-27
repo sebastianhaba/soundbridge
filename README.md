@@ -106,6 +106,8 @@ Biblioteki zapisywane są w LiteDB (`data/soundbridge.db`). Renderery UPnP widz�
 
 Wirtualna biblioteka strumieni radiowych. Zawsze obecna jako kontener najwyższego poziomu (domyślnie `"Radio Online"`), nie wymaga jawnego tworzenia. Nazwę roota można zmienić przez API.
 
+Każda stacja radiowa to kontener, który zawiera jeden lub więcej **Streamów** — każdy z własną nazwą, URL-em i MIME type. Dzięki temu jedna stacja może oferować kilka wariantów jakości/kodeka (np. MP3 128kbps, FLAC lossless).
+
 ### `/api/radio-online`
 
 | Metoda | Ścieżka | Opis |
@@ -119,9 +121,19 @@ Wirtualna biblioteka strumieni radiowych. Zawsze obecna jako kontener najwyższe
 |--------|---------|------|
 | `GET` | `/api/radio-online/stations` | Lista wszystkich stacji |
 | `GET` | `/api/radio-online/stations/{name}` | Pojedyncza stacja |
-| `POST` | `/api/radio-online/stations` | Dodaj stację |
-| `PUT` | `/api/radio-online/stations/{name}` | Edytuj stację (URL, MimeType) |
-| `DELETE` | `/api/radio-online/stations/{name}` | Usuń stację |
+| `POST` | `/api/radio-online/stations` | Dodaj stację (tylko nazwa) |
+| `PUT` | `/api/radio-online/stations/{name}` | Zmień nazwę stacji |
+| `DELETE` | `/api/radio-online/stations/{name}` | Usuń stację wraz ze streamami |
+
+### `/api/radio-online/stations/{stationName}/streams`
+
+| Metoda | Ścieżka | Opis |
+|--------|---------|------|
+| `GET` | `.../streams` | Lista streamów stacji |
+| `GET` | `.../streams/{streamName}` | Pojedynczy stream |
+| `POST` | `.../streams` | Dodaj stream |
+| `PUT` | `.../streams/{streamName}` | Edytuj stream (nazwa, URL, MIME) |
+| `DELETE` | `.../streams/{streamName}` | Usuń stream |
 
 ### Dostępne MIME types
 
@@ -138,18 +150,36 @@ curl -X PUT http://{host}:{port}/api/radio-online \
 # Dodaj stację
 curl -X POST http://{host}:{port}/api/radio-online/stations \
   -H "Content-Type: application/json" \
-  -d '{"name": "Radio Nowy Świat", "url": "https://stream.example.com/rns.mp3", "mimeType": "audio/mpeg"}'
+  -d '{"name": "Radio Paradise"}'
 
-# Edytuj URL stacji
-curl -X PUT http://{host}:{port}/api/radio-online/stations/Radio%20Nowy%20Świat \
+# Zmień nazwę stacji
+curl -X PUT http://{host}:{port}/api/radio-online/stations/Radio%20Paradise \
   -H "Content-Type: application/json" \
-  -d '{"url": "https://new-stream.example.com/rns.aac", "mimeType": "audio/aac"}'
+  -d '{"name": "RP"}'
 
-# Usuń stację
-curl -X DELETE http://{host}:{port}/api/radio-online/stations/Radio%20Nowy%20Świat
+# Dodaj stream MP3
+curl -X POST http://{host}:{port}/api/radio-online/stations/Radio%20Paradise/streams \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Mellow Mix - MP3", "url": "https://stream.example.com/mellow.mp3", "mimeType": "audio/mpeg"}'
+
+# Dodaj stream FLAC
+curl -X POST http://{host}:{port}/api/radio-online/stations/Radio%20Paradise/streams \
+  -H "Content-Type: application/json" \
+  -d '{"name": "World Mix - FLAC", "url": "https://stream.example.com/world.flac", "mimeType": "audio/flac"}'
+
+# Edytuj URL streama
+curl -X PUT http://{host}:{port}/api/radio-online/stations/Radio%20Paradise/streams/Mellow%20Mix%20-%20MP3 \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://new-stream.example.com/mellow.mp3"}'
+
+# Usuń stream
+curl -X DELETE http://{host}:{port}/api/radio-online/stations/Radio%20Paradise/streams/Mellow%20Mix%20-%20MP3
+
+# Usuń stację (kasuje też wszystkie jej streamy)
+curl -X DELETE http://{host}:{port}/api/radio-online/stations/Radio%20Paradise
 ```
 
-Każda stacja pojawia się jako kontener z jednym dzieckiem `"PlayStream"` (UPnP `audioBroadcast`) — renderer odtwarza stream bezpośrednio z zewnętrznego URL-a.
+Każdy stream pojawia się jako item UPnP `audioBroadcast` — renderer odtwarza go bezpośrednio z zewnętrznego URL-a.
 
 ## Scalar API Reference
 
@@ -191,7 +221,7 @@ src/
 │   ├── Models/                     # LocalLibrary
 │   └── Controllers/                # LocalLibrariesController
 ├── SoundBridge.Libraries.RadioOnline/   # Strumienie radiowe
-│   ├── Models/                     # RadioRoot, RadioStation
+│   ├── Models/                     # RadioRoot, RadioStation, Stream
 │   └── Controllers/                # RadioOnlineController
 └── SoundBridge.App/                # Host ASP.NET + UPnP
     ├── Controllers/                # MediaController
