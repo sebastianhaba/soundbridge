@@ -8,6 +8,7 @@ using Serilog;
 using SoundBridge.Abstractions;
 using SoundBridge.Libraries.LocalLibrary;
 using SoundBridge.Libraries.RadioOnline;
+using SoundBridge.Libraries.PrThreeArchive;
 using SoundBridge.App.Core;
 using SoundBridge.App.Providers;
 using SoundBridge.App.Services;
@@ -47,9 +48,12 @@ public static class Program
 
             services.Configure<SoundBridgeOptions>(sbSection);
 
+            services.AddHttpClient();
+
             services.AddSingleton<LiteDatabase>(_ => new LiteDatabase("data/soundbridge.db"));
             services.AddSingleton<ILocalLibraryStore, LocalLibraryStore>();
             services.AddSingleton<IRadioOnlineStore, RadioOnlineStore>();
+            services.AddSingleton<IPrThreeArchiveStore, PrThreeArchiveStore>();
 
             services.AddSingleton(sp =>
             {
@@ -113,9 +117,12 @@ public static class Program
 
             services.AddSingleton<LocalLibraryResolver>();
             services.AddSingleton<RadioOnlineResolver>();
+            services.AddSingleton<PrThreeArchiveResolver>();
+            services.Configure<PrThreeArchiveOptions>(sbSection.GetSection("PrThreeArchive"));
             services.AddSingleton<IContentResolver>(sp => new CompositeResolver(
                 sp.GetRequiredService<LocalLibraryResolver>(),
-                sp.GetRequiredService<RadioOnlineResolver>()));
+                sp.GetRequiredService<RadioOnlineResolver>(),
+                sp.GetRequiredService<PrThreeArchiveResolver>()));
 
             services.AddSingleton<DvProviderUpnpOrgContentDirectory1>(sp =>
             {
@@ -136,7 +143,8 @@ public static class Program
 
             services.AddControllers()
                 .AddApplicationPart(typeof(LocalLibrariesController).Assembly)
-                .AddApplicationPart(typeof(RadioOnlineController).Assembly);
+                .AddApplicationPart(typeof(RadioOnlineController).Assembly)
+                .AddApplicationPart(typeof(PrThreeArchiveController).Assembly);
             services.AddOpenApi();
 
             var app = builder.Build();
