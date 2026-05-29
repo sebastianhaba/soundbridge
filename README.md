@@ -2,7 +2,7 @@
 
 <img src="assets/social/soundbridge.png" alt="SoundBridge" width="600">
 
-UPnP MediaServer udostępniający lokalne pliki audio oraz internetowe strumienie radiowe wzmacniaczom sieciowym (rendererom). Korzysta z Kestrel do serwowania plików i ohNet jako stosu UPnP.
+UPnP MediaServer udostępniający lokalne pliki audio, internetowe strumienie radiowe oraz archiwum audycji Polskiego Radia Trójka wzmacniaczom sieciowym (rendererom). Korzysta z Kestrel do serwowania plików i ohNet jako stosu UPnP.
 
 **Główna cecha: biblioteka oparta na strukturze katalogów** — SoundBridge nie czyta metadanych plików (ID3 tagów). Zamiast tego odwzorowuje strukturę folderów 1:1. Jeśli masz dobrze zorganizowaną kolekcję (`Muzyka/Artysta/Album/utwór.mp3`), renderer zobaczy ją dokładnie w tej hierarchii. Żadnego skanowania, żadnych tagów — tylko to, co na dysku.
 
@@ -181,6 +181,46 @@ curl -X DELETE http://{host}:{port}/api/radio-online/stations/Radio%20Paradise
 
 Każdy stream pojawia się jako item UPnP `audioBroadcast` — renderer odtwarza go bezpośrednio z zewnętrznego URL-a.
 
+## Trójka Archiwum — Web API
+
+Wirtualna biblioteka archiwum audycji Polskiego Radia Trójka. Zawsze obecna jako kontener najwyższego poziomu (domyślnie `"Trójka Archiwum"`). Pobiera dane na żywo z API Polskiego Radia — lista audycji i odcinków nie jest persistowana lokalnie.
+
+Audycje są pogrupowane w wirtualne foldery `#`, `A`–`Z` według pierwszej litery nazwy. Polskie znaki diakrytyczne są normalizowane (np. `Ł` → `L`, `Ż` → `Z`). Każda audycja wyświetla odcinki stronicowane po 10, z nawigacją `Nast. >` / `< Poprz.`.
+
+### Konfiguracja API key
+
+Klucz API wymagany przez `api-gateway.polskieradio.pl` konfiguruje się w `appsettings.json`:
+
+```json
+{
+  "SoundBridge": {
+    "PrThreeArchive": {
+      "ApiKey": "twój-klucz-api"
+    }
+  }
+}
+```
+
+Lub przez zmienną środowiskową: `SoundBridge__PrThreeArchive__ApiKey`.
+
+### `/api/pr-three-archive`
+
+| Metoda | Ścieżka | Opis |
+|--------|---------|------|
+| `GET` | `/api/pr-three-archive` | Nazwa roota |
+| `PUT` | `/api/pr-three-archive` | Zmień nazwę roota |
+
+### Przykład
+
+```bash
+# Zmień nazwę roota
+curl -X PUT http://{host}:{port}/api/pr-three-archive \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Trójka"}'
+```
+
+Odcinki są serwowane jako itemy UPnP `audioBroadcast` z bezpośrednim URL-em do strumienia na serwerach Polskiego Radia (MIME `audio/mpeg`).
+
 ## Scalar API Reference
 
 Dokumentacja OpenAPI dostępna zawsze pod `/scalar/v1` — interaktywne UI do testowania endpointów API.
@@ -223,6 +263,10 @@ src/
 ├── SoundBridge.Libraries.RadioOnline/   # Strumienie radiowe
 │   ├── Models/                     # RadioRoot, RadioStation, Stream
 │   └── Controllers/                # RadioOnlineController
+├── SoundBridge.Libraries.PrThreeArchive/ # Archiwum Trójki
+│   ├── Models/                     # PrThreeRoot
+│   ├── ApiModels/                  # PrShowDto, PrEpisodeDto
+│   └── Controllers/                # PrThreeArchiveController
 └── SoundBridge.App/                # Host ASP.NET + UPnP
     ├── Controllers/                # MediaController
     ├── Core/                       # UdnManager
